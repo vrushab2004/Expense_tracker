@@ -2,6 +2,7 @@ import 'package:expense_tracker/data.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:hive/hive.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,8 +12,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  TextEditingController _ammountController = TextEditingController();
-  TextEditingController _reasonController = TextEditingController();
+  final TextEditingController _ammountController = TextEditingController();
+  final TextEditingController _reasonController = TextEditingController();
+  List data = [];
+  @override
+  void initState() async{
+    var box = await Hive.box('Expense');
+    data = await box.get("ExpenseList");
+    box.close();
+    super.initState();
+  }
   @override
   void dispose() {
     _ammountController.dispose();
@@ -22,23 +31,26 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CupertinoNavigationBar(middle: Text('Hello')),
+      appBar:const CupertinoNavigationBar(middle: Text('Hello'),),
       floatingActionButton: CupertinoButton(onPressed: (){
         showDialog(context: context, builder: (context){
           return CupertinoAlertDialog(
-            title: Text('Add money'),
-            content: Container(height: 100,child: Column(children: [CupertinoTextField(placeholder: ('Enter money'),controller: _ammountController,),const SizedBox(height: 10,),CupertinoTextField(placeholder: ('Description'),controller: _reasonController,),],),),
+            title:const Text('Add money'),
+            content: SizedBox(height: 100,child: Column(children: [CupertinoTextField(placeholder: ('Enter money'),controller: _ammountController,),const SizedBox(height: 10,),CupertinoTextField(placeholder: ('Description'),controller: _reasonController,),],),),
             actions: [
-              TextButton(child: Text("OK"),onPressed: (){setState(() {
-                ExpenseTracker.addData(ExpenseData(ammount: _ammountController.text, reasons: _reasonController.text),);
+              TextButton(child:const Text("OK"),onPressed: (){setState(() {
+                ExpenseTracker.addData(ExpenseData(ammount: double.parse(_ammountController.text), reasons: _reasonController.text),);
                 Navigator.pop(context);
+                _ammountController.text = "";
+                _reasonController.text = "";
               });},),
-              TextButton(child: Text("CANCEL") , onPressed: (){Navigator.pop(context);},)
+              TextButton(child:const Text("CANCEL") , onPressed: (){Navigator.pop(context);_ammountController.text = "";
+                _reasonController.text = "";},),
             ],
           );
         }
         );
-      } , child: Icon(CupertinoIcons.add),),
+      } , child:const Icon(CupertinoIcons.add),),
       body: ListView.builder(itemBuilder: (context , index){
             return Center(
       child: Container(
@@ -51,9 +63,9 @@ class _HomePageState extends State<HomePage> {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
                ListTile(
-                leading: Icon(Icons.attach_money , size: 30, color: Colors.black,),
-                title: Text(ExpenseTracker.expenseHistory[index].ammount , style: GoogleFonts.varelaRound(color: Colors.black , fontSize: 24 , fontWeight: FontWeight.bold),),
-                subtitle: Text(ExpenseTracker.expenseHistory[index].reasons , style: GoogleFonts.varelaRound(color: Colors.grey , fontSize: 17 , fontWeight: FontWeight.normal),),
+                leading:const Icon(Icons.attach_money , size: 30, color: Colors.black,),
+                title: Text("${data[index].ammount}" , style: GoogleFonts.varelaRound(color: Colors.black , fontSize: 24 , fontWeight: FontWeight.bold),),
+                subtitle: Text(data[index].reasons, style: GoogleFonts.varelaRound(color: Colors.grey , fontSize: 17 , fontWeight: FontWeight.normal),),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -73,7 +85,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
             
-      },itemCount: ExpenseTracker.expenseHistory.length,),
+      },itemCount: data.length,reverse: true,shrinkWrap: true,),
     );
   }
 }
